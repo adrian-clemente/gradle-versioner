@@ -1,0 +1,92 @@
+ext.versionFile = file('release/version.properties')
+
+class ProjectVersion {
+    Integer major
+    Integer minor
+    Integer hotfix
+    Boolean release
+
+    ProjectVersion(Integer major, Integer minor, Integer hotfix) {
+        this.major = major
+        this.minor = minor
+        this.hotfix = hotfix
+        this.release = Boolean.FALSE
+    }
+
+    ProjectVersion(Integer major, Integer minor, Integer hotfix, Boolean release) {
+        this(major, minor, hotfix)
+        this.release = release
+    }
+
+    @Override
+    String toString() {
+        "$major.$minor.$hotfix${release ? '' : '-SNAPSHOT'}"
+    }
+}
+
+task loadVersion {
+    project.version = readVersion()
+}
+
+ProjectVersion readVersion() {
+    logger.quiet 'Reading the version file.'
+
+    if (!versionFile.exists()) {
+        throw new GradleException("Required version file does not exit: $versionFile.canonicalPath")
+    }
+
+    Properties versionProps = new Properties()
+
+    versionFile.withInputStream { stream ->
+        versionProps.load(stream)
+    }
+
+    new ProjectVersion(versionProps.major.toInteger(), versionProps.minor.toInteger(), versionProps.hotfix.toInteger(), versionProps.release.toBoolean())
+}
+
+task printVersion << {
+    logger.quiet "Version: $version"
+}
+
+task setReleaseVersion(group: 'versioning', description: 'Makes project a versioning version.') << {
+    logger.info "Set project version as release"
+    setVersionType(true /* Release */)
+}
+
+task setDevelopmentVersion(group: 'versioning', description: 'Makes project a development version.') << {
+    logger.info "Set project version as development"
+    setVersionType(false /* Development */)
+}
+
+void setVersionType(boolean isRelease) {
+    version.release = true
+    ant.propertyfile(file: versionFile) {
+        entry(key: 'release', type: 'string', operation: '=', value: isRelease ? 'true' : 'false')
+    }
+}
+
+task incrementMajorVersion(group: 'versioning', description: 'Increment major version of the project') << {
+    String currentVersion = version.toString()
+    ++version.major
+    incrementVersion('major', currentVersion)
+}
+
+task incrementMinorVersion(group: 'versioning', description: 'Increment minor version of the project') << {
+    String currentVersion = version.toString()
+    ++version.minor
+    incrementVersion('minor', currentVersion)
+}
+
+task incrementHotfixVersion(group: 'versioning', description: 'Increment hotfix version of the project') << {
+    String currentVersion = version.toString()
+    ++version.hotfix
+    incrementVersion('hotfix', currentVersion)
+}
+
+void incrementVersion(String classifier, String currentVersion) {
+    String newVersion = version.toString()
+    logger.info "Incrementing $classifier project version: $currentVersion -> $newVersion"
+    ant.propertyfile(file: versionFile) {
+        entry(key: classifier, type: 'int', operation: '+', value: 1)
+    }
+}

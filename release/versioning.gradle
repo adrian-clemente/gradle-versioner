@@ -29,7 +29,7 @@ task loadVersion(group: 'versioning', description: 'Loads a version to gradle') 
 }
 
 ProjectVersion readVersion() {
-    logger.quiet 'Reading the version file.'
+    logger.info 'Reading the version file.'
 
     if (!versionFile.exists()) {
         throw new GradleException("Required version file does not exit: $versionFile.canonicalPath")

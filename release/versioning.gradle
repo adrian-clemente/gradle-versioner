@@ -24,7 +24,7 @@ class ProjectVersion {
     }
 }
 
-task loadVersion {
+task loadVersion(group: 'versioning', description: 'Loads a version to gradle') {
     project.version = readVersion()
 }
 
@@ -44,11 +44,11 @@ ProjectVersion readVersion() {
     new ProjectVersion(versionProps.major.toInteger(), versionProps.minor.toInteger(), versionProps.hotfix.toInteger(), versionProps.release.toBoolean())
 }
 
-task printVersion << {
+task printVersion(group: 'versioning', description: 'Prints the current project version') << {
     logger.quiet "Version: $version"
 }
 
-task setReleaseVersion(group: 'versioning', description: 'Makes project a versioning version.') << {
+task setReleaseVersion(group: 'versioning', description: 'Makes project a release version.') << {
     logger.info "Set project version as release"
     setVersionType(true /* Release */)
 }
@@ -68,25 +68,30 @@ void setVersionType(boolean isRelease) {
 task incrementMajorVersion(group: 'versioning', description: 'Increment major version of the project') << {
     String currentVersion = version.toString()
     ++version.major
-    incrementVersion('major', currentVersion)
+    version.minor = 0
+    version.hotfix = 0
+    setVersionValues(version.major, version.minor, version.hotfix, currentVersion)
 }
 
 task incrementMinorVersion(group: 'versioning', description: 'Increment minor version of the project') << {
     String currentVersion = version.toString()
     ++version.minor
-    incrementVersion('minor', currentVersion)
+    version.hotfix = 0
+    setVersionValues(version.major, version.minor, version.hotfix, currentVersion)
 }
 
 task incrementHotfixVersion(group: 'versioning', description: 'Increment hotfix version of the project') << {
     String currentVersion = version.toString()
     ++version.hotfix
-    incrementVersion('hotfix', currentVersion)
+    setVersionValues(version.major, version.minor, version.hotfix, currentVersion)
 }
 
-void incrementVersion(String classifier, String currentVersion) {
+void setVersionValues(int majorVersion, int minorVersion, int hotfixVersion, currentVersion) {
     String newVersion = version.toString()
-    logger.info "Incrementing $classifier project version: $currentVersion -> $newVersion"
+    logger.info "Setting new project version: $currentVersion -> $newVersion"
     ant.propertyfile(file: versionFile) {
-        entry(key: classifier, type: 'int', operation: '+', value: 1)
+        entry(key: 'major', type: 'int', operation: '=', value: majorVersion)
+        entry(key: 'minor', type: 'int', operation: '=', value: minorVersion)
+        entry(key: 'hotfix', type: 'int', operation: '=', value: hotfixVersion)
     }
 }
